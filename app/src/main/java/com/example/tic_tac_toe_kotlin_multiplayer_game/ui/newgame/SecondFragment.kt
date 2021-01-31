@@ -1,8 +1,9 @@
 package com.example.tic_tac_toe_kotlin_multiplayer_game.ui.newgame
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -23,13 +24,16 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
     private lateinit var imageButtons: Array<Array<ImageButton>>
     private lateinit var youScore: TextView
     private lateinit var androidScore: TextView
+    private lateinit var sharedPref: SharedPreferences
 
-    private var checkButtonList : MutableList<MutableList<String>> = ArrayList()
+    private var checkButtonList: MutableList<MutableList<String>> = ArrayList()
     private var playerCount: Int = 0
     private var playerFirstPoints: Int = 0
     private var playerSecondPoints: Int = 0
-    private  var ai = "X"
-    private  var human = "O"
+    private val cross = "X"
+    private val zero = "O"
+    private var human: Int = 0
+    private var android: Int = 0
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -37,7 +41,10 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
 
         youScore = view.findViewById(R.id.you_score)
         androidScore = view.findViewById(R.id.android_score)
-
+        sharedPref =
+            activity?.getSharedPreferences(getString(R.string.themes), Context.MODE_PRIVATE)!!
+        human = sharedPref.getInt(R.string.first_logo.toString(), R.mipmap.tic_01)
+        android = sharedPref.getInt(R.string.second_logo.toString(), R.mipmap.tic_06)
 
         view.findViewById<Button>(R.id.offline_try_again).setOnClickListener {
             clearBoard()
@@ -61,7 +68,8 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
 
 
     }
-    private fun getEmptyString():String{
+
+    private fun getEmptyString(): String {
         return " "
     }
 
@@ -82,22 +90,21 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
     private fun onButtonClick(imageBtn: ImageButton, row: Int, column: Int) {
         if (imageBtn.drawable != null) return
 
-        imageBtn.setImageResource(R.mipmap.toe_o)
-        checkButtonList[row][column] = human
-        Log.d("list", checkButtonList.toString())
-        if (checkForWin()){
+        imageBtn.setImageResource(human)
+        checkButtonList[row][column] = zero
+        if (checkForWin() == zero) {
             win(1)
             return
         }
-            bestMove()
-        if (checkForWin()){
+        bestMove()
+        if (checkForWin() == cross) {
             win(2)
             return
         }
 
-        if (playerCount == 8){
+        if (playerCount == 8) {
             playerCount++
-        }else{
+        } else {
             playerCount += 2
         }
 
@@ -106,16 +113,16 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
         }
     }
 
-    private fun bestMove(){
+    private fun bestMove() {
         var bestScore = -100
-        val move:Move = Move(0,0)
+        val move: Move = Move(0, 0)
         Array(3) { row ->
             Array(3) { column ->
-                if (checkButtonList[row][column] == " "){
-                    checkButtonList[row][column] = ai
+                if (checkButtonList[row][column] == " ") {
+                    checkButtonList[row][column] = cross
                     val score = minMax(0, false)
                     checkButtonList[row][column] = " "
-                    if (score > bestScore){
+                    if (score > bestScore) {
                         bestScore = score
                         move.row = row
                         move.column = column
@@ -123,32 +130,32 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
                 }
             }
         }
-        imageButtons[move.row][move.column].setImageResource(R.mipmap.toe_x)
-        checkButtonList[move.row][move.column] = ai
+        imageButtons[move.row][move.column].setImageResource(android)
+        checkButtonList[move.row][move.column] = cross
     }
 
-    private fun minMax(depth: Int, isMaximizing: Boolean):Int{
+    private fun minMax(depth: Int, isMaximizing: Boolean): Int {
         when {
-            (checkForAiWin() == ai && checkForAiWin() != " ") -> {
+            (checkForWin() == cross && checkForWin() != " ") -> {
                 return 10
             }
-            (checkForAiWin() == human && checkForAiWin() != " ") -> {
+            (checkForWin() == zero && checkForWin() != " ") -> {
                 return -10
             }
-            (checkForAiWin() == "tie" && checkForAiWin() != " ") -> {
+            (checkForWin() == "tie" && checkForWin() != " ") -> {
                 return 0
             }
             else -> {
-                if (isMaximizing){
+                if (isMaximizing) {
                     var bestScore = -100
 
                     Array(3) { row ->
                         Array(3) { column ->
                             if (checkButtonList[row][column] == " ") {
-                                checkButtonList[row][column] = ai
+                                checkButtonList[row][column] = cross
                                 val score = minMax(depth + 1, false)
                                 checkButtonList[row][column] = " "
-                                if (score > bestScore){
+                                if (score > bestScore) {
                                     bestScore = score
                                 }
 
@@ -162,10 +169,10 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
                     Array(3) { row ->
                         Array(3) { column ->
                             if (checkButtonList[row][column] == " ") {
-                                checkButtonList[row][column] = human
+                                checkButtonList[row][column] = zero
                                 val score = minMax(depth + 1, true)
                                 checkButtonList[row][column] = " "
-                                if (score < bestScore){
+                                if (score < bestScore) {
                                     bestScore = score
                                 }
                             }
@@ -181,7 +188,7 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
 
 
     private fun win(player: Int) {
-        val winner:String = if (player == 1) {
+        val winner: String = if (player == 1) {
             playerFirstPoints++
             "You won"
         } else {
@@ -217,54 +224,14 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
         }
         playerCount = 0
         checkButtonList.clear()
-        checkButtonList =  MutableList(3) {
+        checkButtonList = MutableList(3) {
             MutableList(3) {
-               getEmptyString()
+                getEmptyString()
             }
         }
     }
 
-
-    private fun checkForWin(): Boolean {
-        val fields = Array(3) { row ->
-            Array(3) { column ->
-                getField(imageButtons[row][column])
-            }
-
-        }
-        for (i in 0..2) {
-            if (
-                (fields[i][0] == fields[i][1]) &&
-                (fields[i][0] == fields[i][2]) &&
-                (fields[i][0] != null)
-            ) return true
-        }
-
-        for (i in 0..2) {
-            if (
-                (fields[0][i] == fields[1][i]) &&
-                (fields[0][i] == fields[2][i]) &&
-                (fields[0][i] != null)
-            ) return true
-        }
-
-        if (
-            (fields[0][0] == fields[1][1]) &&
-            (fields[0][0] == fields[2][2]) &&
-            (fields[0][0] != null)
-        ) return true
-
-        if (
-            (fields[0][2] == fields[1][1]) &&
-            (fields[0][2] == fields[2][0]) &&
-            (fields[0][2] != null)
-        ) return true
-
-        return false
-
-    }
-
-    private fun checkForAiWin(): String {
+    private fun checkForWin(): String {
         var winner = " ";
 
         for (i in 0..2) {
@@ -295,7 +262,7 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
             (checkButtonList[0][2] != " ")
         ) winner = checkButtonList[0][2]
 
-        var openSpots:Int = 0
+        var openSpots: Int = 0
         for (i in 0..2) {
             for (j in 0..2) {
                 if (checkButtonList[i][j] == " ") {
@@ -313,8 +280,8 @@ class SecondFragment : Fragment(R.layout.fragment_second) {
 
     private fun getField(imageButton: ImageButton): Char? {
         val drw: Drawable? = imageButton.drawable
-        val drwCross = ResourcesCompat.getDrawable(resources, R.mipmap.toe_x, null)
-        val drwZero = ResourcesCompat.getDrawable(resources, R.mipmap.toe_o, null)
+        val drwCross = ResourcesCompat.getDrawable(resources, R.mipmap.tic_03, null)
+        val drwZero = ResourcesCompat.getDrawable(resources, R.mipmap.tic_06, null)
 
         return when (drw?.constantState) {
             drwCross?.constantState -> 'X'
